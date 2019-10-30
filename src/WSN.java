@@ -1,7 +1,5 @@
 import javafx.util.Pair;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 
 public class WSN {
@@ -26,7 +24,7 @@ public class WSN {
         ArrayList<Node> secondHalf = new ArrayList<>();
         for (int i=0; i<80; i++){
             ArrayList<Node> half = i < 40 ? firstHalf : secondHalf;
-            nodes[i] = new Node(totalSlots, PER, i, half);
+            nodes[i] = new Node(totalSlots, PER, i, half, 2);
             half.add(nodes[i]);
             nodes[i].assignBaseStation(bs);
         }

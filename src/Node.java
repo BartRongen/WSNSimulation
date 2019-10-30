@@ -17,13 +17,15 @@ public class Node {
     private ArrayList<Node> overhearableNodes;
     private boolean csmaCheckedPreviousSlot;
     private int csmaSkipSlots = 0;
+    private int BE;
+    private int maxBE = 5;
 
     private boolean sending;
     public boolean isSending() {
         return sending;
     }
 
-    public Node(int totalSlots, double PER, int id, ArrayList<Node> overhearableNodes){
+    public Node(int totalSlots, double PER, int id, ArrayList<Node> overhearableNodes, int BE){
         messages = new ArrayList<>();
         generating = new ArrayList<>();
         random = new Random();
@@ -31,6 +33,7 @@ public class Node {
         this.PER = PER;
         this.id = id;
         this.overhearableNodes = overhearableNodes;
+        this.BE = BE;
     }
 
     public void assignBaseStation(BaseStation bs){
@@ -93,9 +96,9 @@ public class Node {
                     if (bs.send(messages, this, time)) {
                         clearMessages = true;
                     } else {
-                        csmaSkipSlots = random.nextInt(5);
+                        csmaSkipSlots = random.nextInt((int) Math.pow(2, BE));
                     }
-                } else if (slot < 8 && slot == random.nextInt(9)) {
+                } else if (slot < 8) {
                     // cannot send in next slot if slot is 8
                     boolean anySending = false;
                     for (Node node : overhearableNodes) {
@@ -107,9 +110,9 @@ public class Node {
                     if (!anySending) {
                         csmaCheckedPreviousSlot = true;
                     } else {
-                        csmaSkipSlots = random.nextInt(5);
+                        BE = Math.min(BE+1, 5);
+                        csmaSkipSlots = random.nextInt((int) Math.pow(2, BE));
                     }
-
                 } else {
                     csmaSkipSlots = 0;
                     csmaCheckedPreviousSlot = false;
