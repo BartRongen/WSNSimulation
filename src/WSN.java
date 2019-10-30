@@ -91,22 +91,29 @@ public class WSN {
         System.out.println("Expected messages: " + expectedMessages);
         System.out.println("Lost messages: " + Node.getLostMessages());
         System.out.println("Collisions: " + bs.getCollisions());
+        System.out.println("Messages sent using CSMA: " + Node.getCsmaMessagesSent());
 
         long totalLatency = 0;
+        long totalLatencyMiddle = 0;
 
         ArrayList<Message> received = bs.getReceived();
         System.out.println("Received messages: " + received.size());
         ArrayList<Integer> latencies = new ArrayList<>(received.size());
-        for (Message message : received) {
+        for (int i = 0; i < received.size(); i++) {
+            Message message = received.get(i);
             int latency = (int)(message.recievedAt - message.createdAt);
             latencies.add(latency);
             totalLatency += latency;
+            if (i > received.size() / 100 && i < received.size() - received.size() / 100) {
+                totalLatencyMiddle += latency;
+            }
         }
         latencies.sort(Comparator.naturalOrder());
 
         System.out.println("Best latency: " + latencies.get(0) + " ms");
         System.out.println("Best latency (1%): " + latencies.get(latencies.size() / 100) + " ms");
         System.out.println("Average latency: " + totalLatency / received.size() + " ms");
+        System.out.println("Average latency (middle 98%): " + totalLatency / received.size() + " ms");
         System.out.println("Worst  latency: " + latencies.get(latencies.size() - 1) + " ms");
         System.out.println("Worst  latency (1%): " + latencies.get(latencies.size() - 1 - latencies.size() / 100) + " ms");
         System.out.println("Median latency: " + latencies.get(latencies.size() / 2) + " ms");

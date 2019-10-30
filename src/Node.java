@@ -24,6 +24,11 @@ public class Node {
     private boolean sending;
 
     private static int lostMessages;
+    private static int csmaMessagesSent;
+
+    public static int getCsmaMessagesSent() {
+        return csmaMessagesSent;
+    }
 
     public static int getLostMessages() {
         return lostMessages;
@@ -142,6 +147,8 @@ public class Node {
     public void ack() {
         clearMessages = true;
         if (csmaDidSend) {
+            csmaMessagesSent += Math.min(messages.size(), 20);
+            csmaDidSend = false;
             csmaSkipSlots = 0;
         }
     }
