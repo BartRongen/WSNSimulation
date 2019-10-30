@@ -1,21 +1,20 @@
-import javafx.util.Pair;
-
 import java.util.ArrayList;
 import java.util.Random;
 
 public class BaseStation {
 
     private Node[] nodes;
-    private double PRR;
     private Random random;
-    private ArrayList<Pair<Message, Long>> obtained; //the successfully obtained messages
-    private ArrayList<Pair<Message, Long>> awaiting; //the messages discovered this slot, but they can be corrupted if two nodes send during the same slot
+    private ArrayList<Message> received; //the successfully received messages
+    private ArrayList<Message> awaiting; //the messages discovered this slot, but they can be corrupted if two nodes send during the same slot
     boolean alreadyReceived = false; //boolean to track whether or not the base station already received a message this slot
+    boolean didCollide;
     private Node currentSender;
 
-    public BaseStation(double PRR) {
-        this.PRR = PRR;
-        obtained = new ArrayList<>();
+    private long collisions;
+
+    public BaseStation() {
+        received = new ArrayList<>();
         awaiting = new ArrayList<>();
         random = new Random();
     }
@@ -30,20 +29,30 @@ public class BaseStation {
             int gts = -1;
             if (i >= frame * 7 && i < (frame + 1) * 7) {
                 gts = 9 + i - frame * 7;
-                if ((random.nextDouble() > PRR)) {
+                // Use PRR to simulate beacon not being received by node
+                if ((random.nextDouble() > Config.PRR)) {
                     gts = -1;
                 }
             }
-            nodes[i].setup(gts);
+            nodes[i].beacon(gts);
         }
     }
 
-    public void process(int frame, int slot) {
+    public void process(long time) {
         alreadyReceived = false;
+        if (didCollide) {
+            collisions++;
+        }
+        didCollide = false;
 
         if (awaiting.size() > 0) {
-            obtained.addAll(awaiting);
-            if ((random.nextDouble() <= PRR)) {
+            for (Message message : awaiting) {
+                if (message.recievedAt == -1) {
+                    message.recievedAt = time;
+                    received.add(message);
+                }
+            }
+            if ((random.nextDouble() <= Config.PRR)) {
                 currentSender.ack();
             }
             awaiting.clear();
@@ -51,26 +60,33 @@ public class BaseStation {
     }
 
     //nodes can send data to the base station with this method
-    public void send(ArrayList<Message> messages, Node node, long time) {
-        if ((random.nextDouble() > PRR)) {
+    public void send(ArrayList<Message> messages, Node node, int slot) {
+        if ((random.nextDouble() > Config.PRR)) {
             return;
         }
         if (!alreadyReceived) {
             //stores the current sender, so it can be send an ack
             currentSender = node;
             //adds the message with arrived timestamp.
-            for (Message m : messages) {
-                Pair<Message, Long> pair = new Pair<>(m, time);
-                awaiting.add(pair);
+            for (Message message : messages) {
+                awaiting.add(message);
             }
             alreadyReceived = true;
         } else {
-//            System.out.println("two at the same time");
+            if (slot > 8) {
+                System.err.println("Collision happened in guaranteed slot period!");
+                System.exit(1);
+            }
+            didCollide = true;
             awaiting.clear();
         }
     }
 
-    public ArrayList<Pair<Message, Long>> getObtained() {
-        return obtained;
+    public ArrayList<Message> getReceived() {
+        return received;
+    }
+
+    public long getCollisions() {
+        return collisions;
     }
 }

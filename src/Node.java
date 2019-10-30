@@ -9,11 +9,10 @@ public class Node {
     private ArrayList<Message> messages;
     private Random random;
     private int totalSlots;
-    private double PRR;
     private int seqNumber = 0;
     private int id;
     private boolean clearMessages;
-    private int memory = 60; //we can store 20 messages
+    private int memory = 40; //we can store 20 messages
     private ArrayList<Node> overhearableNodes;
     private boolean csmaCheckedPreviousSlot;
     private int csmaSkipSlots = 0;
@@ -27,12 +26,11 @@ public class Node {
         return sending;
     }
 
-    public Node(int totalSlots, double PRR, int id, ArrayList<Node> overhearableNodes, int BE) {
+    public Node(int totalSlots, int id, ArrayList<Node> overhearableNodes, int BE) {
         messages = new ArrayList<>();
         generating = new ArrayList<>();
         random = new Random();
         this.totalSlots = totalSlots;
-        this.PRR = PRR;
         this.id = id;
         this.overhearableNodes = overhearableNodes;
         this.BE = BE;
@@ -42,14 +40,17 @@ public class Node {
         this.bs = bs;
     }
 
-    public void setup(int GTS) {
-        //sets the new GTS
+    public void beacon(int GTS) {
         this.GTS = GTS;
+
+    }
+
+    public void setupGeneration() {
         //generates the messages
         generating.clear();
 
         for (int i = 0; i < random.nextInt(21); i++) {
-            //creates the to time slot for the generated message
+            //creates the to createdAt slot for the generated message
             generating.add(random.nextInt(totalSlots + 1));
         }
     }
@@ -87,7 +88,7 @@ public class Node {
         //check whether it is this node's GTS
         if (slot == GTS) {
             sending = true;
-            bs.send(messages, this, time);
+            bs.send(messages, this, slot);
         } else if (slot < 9) {
             // CSMA
             if (csmaSkipSlots > 0) {
@@ -96,7 +97,7 @@ public class Node {
                 csmaCheckedPreviousSlot = false;
                 sending = true;
                 csmaDidSend = true;
-                bs.send(messages, this, time);
+                bs.send(messages, this, slot);
             } else if (slot < 8) {
                 // cannot send in next slot if slot is 8
                 boolean anySending = false;

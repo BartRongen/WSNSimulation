@@ -4,11 +4,12 @@ public class Message {
     //the message contains the node id, and its sequence number
     public int node;
     public int seqNumber;
-    public long timeStamp;
+    public long createdAt;
+    public long recievedAt = -1;
 
     public Message(int node, int seqNumber, long time){
         this.node = node;
         this.seqNumber = seqNumber;
-        this.timeStamp = time;
+        this.createdAt = time;
     }
 }
