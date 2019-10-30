@@ -5,26 +5,26 @@ import java.util.ArrayList;
 public class WSN {
 
     static long slotLength = 1000/(12*16);
-    static int simulationTime = 10000;
+    static int simulationTime = 8 * 60 * 60;
 
     BaseStation bs;
     Node[] nodes;
 
     private int frames = 12;
     private int slots = 16;
-    private double PER = 0.99;
+    private double PRR = 0.90;
 
     private int totalSlots = frames*slots;
     private int secondsPassed = 0;
 
     public WSN(){
-        bs = new BaseStation(PER);
+        bs = new BaseStation(PRR);
         nodes = new Node[80];
         ArrayList<Node> firstHalf = new ArrayList<>();
         ArrayList<Node> secondHalf = new ArrayList<>();
         for (int i=0; i<80; i++){
             ArrayList<Node> half = i < 40 ? firstHalf : secondHalf;
-            nodes[i] = new Node(totalSlots, PER, i, half, 2);
+            nodes[i] = new Node(totalSlots, PRR, i, half, 2);
             half.add(nodes[i]);
             nodes[i].assignBaseStation(bs);
         }
@@ -50,10 +50,13 @@ public class WSN {
             }
             //processing of each node in the network
 
-            bs.process(frame, slot, time);
+            if (slot == 0) {
+                bs.beacon(frame);
+            }
             for (int i=0; i<nodes.length; i++){
                 nodes[i].process(frame, slot, time);
             }
+            bs.process(frame, slot);
 
 
 
