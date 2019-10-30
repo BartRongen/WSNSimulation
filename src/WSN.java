@@ -92,7 +92,7 @@ public class WSN {
         System.out.println("Lost messages: " + Node.getLostMessages());
         System.out.println("Collisions: " + bs.getCollisions());
 
-        int totalLatency = 0;
+        long totalLatency = 0;
 
         ArrayList<Message> received = bs.getReceived();
         System.out.println("Received messages: " + received.size());
@@ -118,7 +118,7 @@ public class WSN {
     }
 
 
-    private double standardDeviation(List<Integer> latencies, int average) {
+    private double standardDeviation(List<Integer> latencies, long average) {
         long runningSum = 0;
         for (int latency : latencies) {
             long val = average - latency;
