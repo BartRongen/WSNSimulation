@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 
 public class WSN {
 
@@ -81,34 +82,50 @@ public class WSN {
 
     public void analyze() {
         System.out.println("Gathering results...");
+        System.out.println();
         int expectedMessages = 0;
 
         for (Node node : nodes) {
             expectedMessages += node.getSeqNumber();
         }
+        System.out.println("Expected messages: " + expectedMessages);
+        System.out.println("Lost messages: " + Node.getLostMessages());
+        System.out.println("Collisions: " + bs.getCollisions());
 
-        int lostMessages = 0;
-        long totalLatency = 0;
+        int totalLatency = 0;
 
         ArrayList<Message> received = bs.getReceived();
-        ArrayList<Long> latencies = new ArrayList<>(received.size());
+        System.out.println("Received messages: " + received.size());
+        ArrayList<Integer> latencies = new ArrayList<>(received.size());
         for (Message message : received) {
-            long latency = message.recievedAt - message.createdAt;
+            int latency = (int)(message.recievedAt - message.createdAt);
             latencies.add(latency);
             totalLatency += latency;
         }
         latencies.sort(Comparator.naturalOrder());
 
-        System.out.println("Expected messages: " + expectedMessages);
-        System.out.println("Lost messages: " + lostMessages);
-        System.out.println("Received messages: " + received.size());
         System.out.println("Best latency: " + latencies.get(0) + " ms");
         System.out.println("Best latency (1%): " + latencies.get(latencies.size() / 100) + " ms");
         System.out.println("Average latency: " + totalLatency / received.size() + " ms");
         System.out.println("Worst  latency: " + latencies.get(latencies.size() - 1) + " ms");
         System.out.println("Worst  latency (1%): " + latencies.get(latencies.size() - 1 - latencies.size() / 100) + " ms");
         System.out.println("Median latency: " + latencies.get(latencies.size() / 2) + " ms");
-        System.out.println("Collisions: " + bs.getCollisions());
+        System.out.println("Standard deviation: " + standardDeviation(latencies, totalLatency / received.size()) + " ms");
 
+
+        System.out.println();
+        System.out.println("Done!");
     }
+
+
+    private double standardDeviation(List<Integer> latencies, int average) {
+        long runningSum = 0;
+        for (int latency : latencies) {
+            long val = average - latency;
+            runningSum += val * val;
+        }
+        int avg = (int)(runningSum / latencies.size());
+        return Math.sqrt(avg);
+    }
+
 }

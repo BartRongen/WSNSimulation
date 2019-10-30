@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class BaseStation {
@@ -60,7 +61,7 @@ public class BaseStation {
     }
 
     //nodes can send data to the base station with this method
-    public void send(ArrayList<Message> messages, Node node, int slot) {
+    public void send(List<Message> messages, Node node, int slot) {
         if ((random.nextDouble() > Config.PRR)) {
             return;
         }

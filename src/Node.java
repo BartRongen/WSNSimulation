@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class Node {
@@ -12,7 +13,7 @@ public class Node {
     private int seqNumber = 0;
     private int id;
     private boolean clearMessages;
-    private int memory = 40; //we can store 20 messages
+    private int memory = 60; //we can store 60 messages
     private ArrayList<Node> overhearableNodes;
     private boolean csmaCheckedPreviousSlot;
     private int csmaSkipSlots = 0;
@@ -21,6 +22,12 @@ public class Node {
     private boolean csmaDidSend;
 
     private boolean sending;
+
+    private static int lostMessages;
+
+    public static int getLostMessages() {
+        return lostMessages;
+    }
 
     public boolean isSending() {
         return sending;
@@ -51,7 +58,7 @@ public class Node {
 
         for (int i = 0; i < random.nextInt(21); i++) {
             //creates the to createdAt slot for the generated message
-            generating.add(random.nextInt(totalSlots + 1));
+            generating.add(random.nextInt(totalSlots));
         }
     }
 
@@ -68,16 +75,23 @@ public class Node {
 
         //check whether we can clear the current messages
         if (clearMessages) {
-            messages.clear();
+            if (messages.size() > 20) {
+                List<Message> remaining = messages.subList(20, messages.size());
+                messages = new ArrayList<>(remaining.size());
+                messages.addAll(remaining);
+            } else {
+                messages.clear();
+            }
             clearMessages = false;
         }
 
         //check if we need to generate a message
         for (int timeSlot : generating) {
             if (cS == timeSlot) {
-                //when there are more than 20 messages, we can't store them in our memory.
+                //when there are more than 60 messages, we can't store them in our memory.
                 if (messages.size() > memory) {
                     messages.remove(0);
+                    lostMessages++;
                 }
                 messages.add(new Message(id, seqNumber, time));
                 seqNumber++;
@@ -88,7 +102,7 @@ public class Node {
         //check whether it is this node's GTS
         if (slot == GTS) {
             sending = true;
-            bs.send(messages, this, slot);
+            sendPacket(slot);
         } else if (slot < 9) {
             // CSMA
             if (csmaSkipSlots > 0) {
@@ -97,7 +111,7 @@ public class Node {
                 csmaCheckedPreviousSlot = false;
                 sending = true;
                 csmaDidSend = true;
-                bs.send(messages, this, slot);
+                sendPacket(slot);
             } else if (slot < 8) {
                 // cannot send in next slot if slot is 8
                 boolean anySending = false;
@@ -115,6 +129,10 @@ public class Node {
             }
         }
 
+    }
+
+    private void sendPacket(int slot) {
+        bs.send(messages.subList(0, Math.min(messages.size(), 20)), this, slot);
     }
 
     private void csmaBackoff() {
