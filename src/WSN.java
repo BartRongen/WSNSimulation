@@ -14,7 +14,7 @@ public class WSN {
 
     private int frames = 12;
     private int slots = 16;
-    private double PER = 0.9;
+    private double PER = 0.99;
 
     private int totalSlots = frames*slots;
     private int secondsPassed = 0;
@@ -22,13 +22,18 @@ public class WSN {
     public WSN(){
         bs = new BaseStation(PER);
         nodes = new Node[80];
+        ArrayList<Node> firstHalf = new ArrayList<>();
+        ArrayList<Node> secondHalf = new ArrayList<>();
         for (int i=0; i<80; i++){
-            nodes[i] = new Node(totalSlots, PER, i);
+            ArrayList<Node> half = i < 40 ? firstHalf : secondHalf;
+            nodes[i] = new Node(totalSlots, PER, i, half);
+            half.add(nodes[i]);
             nodes[i].assignBaseStation(bs);
         }
         bs.assignNodes(nodes);
     }
 
+    int count = 0;
     public void startSimulation(){
         long time = 0;
         long startLap = 0;
@@ -41,7 +46,6 @@ public class WSN {
         int slotTime = 1; //total slots elapsed (to measure the time for comparing), never resets
 
         while(secondsPassed <= simulationTime){
-            Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
             //check if a second has passed
             if (time > (secondsPassed+1) * 1000){
                 secondsPassed++;
@@ -122,7 +126,7 @@ public class WSN {
         System.out.println("Expected messages: " + expectedMessages);
         System.out.println("Lost messages: " + lostMessages);
         System.out.println("Received messages: " + receivedMessages);
-        System.out.println("Total latency: " + totalLatency/receivedMessages);
+        System.out.println("Average latency: " + totalLatency/receivedMessages);
         System.out.println("Worst latency: " + worstLatency);
 
     }

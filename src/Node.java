@@ -14,14 +14,23 @@ public class Node {
     private int id;
     private boolean clearMessages;
     private int memory = 20; //we can store 20 messages
+    private ArrayList<Node> overhearableNodes;
+    private boolean csmaCheckedPreviousSlot;
+    private int csmaSkipSlots = 0;
 
-    public Node(int totalSlots, double PER, int id){
+    private boolean sending;
+    public boolean isSending() {
+        return sending;
+    }
+
+    public Node(int totalSlots, double PER, int id, ArrayList<Node> overhearableNodes){
         messages = new ArrayList<>();
         generating = new ArrayList<>();
         random = new Random();
         this.totalSlots = totalSlots;
         this.PER = PER;
         this.id = id;
+        this.overhearableNodes = overhearableNodes;
     }
 
     public void assignBaseStation(BaseStation bs){
@@ -44,6 +53,7 @@ public class Node {
     public void process(int frame, int slot, long time){
         //calculate current slot;
         int cS = frame*16 + slot;
+        sending = false;
 
         //check whether we can clear the current messages
         if (clearMessages){
@@ -63,17 +73,49 @@ public class Node {
             }
         }
         //check whether it is this node's GTS
-        if (cS == GTS){
-            //determines whether the sending is successful according to PER
-            if (random.nextDouble() <= PER){
-                boolean success = bs.send(messages, this, time);
-                if (success){
-                    clearMessages = true;
+        if (messages.size() > 0) {
+            if (slot == GTS) {
+                //determines whether the sending is successful according to PER
+                if (random.nextDouble() <= PER) {
+                    sending = true;
+                    boolean success = bs.send(messages, this, time);
+                    if (success) {
+                        clearMessages = true;
+                    }
+                }
+            } else if (slot < 9) {
+                // CSMA
+                if (csmaSkipSlots > 0) {
+                    csmaSkipSlots--;
+                } else if (csmaCheckedPreviousSlot) {
+                    csmaCheckedPreviousSlot = false;
+                    sending = true;
+                    if (bs.send(messages, this, time)) {
+                        clearMessages = true;
+                    } else {
+                        csmaSkipSlots = random.nextInt(5);
+                    }
+                } else if (slot < 8 && slot == random.nextInt(9)) {
+                    // cannot send in next slot if slot is 8
+                    boolean anySending = false;
+                    for (Node node : overhearableNodes) {
+                        if (node.isSending()) {
+                            anySending = true;
+                            break;
+                        }
+                    }
+                    if (!anySending) {
+                        csmaCheckedPreviousSlot = true;
+                    } else {
+                        csmaSkipSlots = random.nextInt(5);
+                    }
+
+                } else {
+                    csmaSkipSlots = 0;
+                    csmaCheckedPreviousSlot = false;
                 }
             }
         }
-
-        //TODO CSMA
 
     }
 

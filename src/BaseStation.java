@@ -37,11 +37,21 @@ public class BaseStation {
         //clears the awaiting messages
         awaiting.clear();
 
-        //setup all nodes for the following second (not entirely how beacon-enabled works, but it does represent it on high level)
-        if (cS == 0){
-            for (int i=0; i<nodes.length; i++){
-                nodes[i].setup(i);
+        //setup all nodes for the frame
+        if (slot == 0){
+//            for (int i = frame * 7; i < Math.min(nodes.length, (frame+1) * 7); i++){
+            for (int i = 0; i < nodes.length; i++){
+                int gts = -1;
+                if (i >= frame * 7 && i < (frame+1) * 7) {
+//                    gts = (i / 7) * 16 + 9 + (i % 7);
+                    gts = 9 + i - frame * 7;
+                }
+//                System.out.println(gts);
+                nodes[i].setup(gts);
             }
+//            System.out.println();
+//            if (frame == 4)
+//            System.exit(0);
         }
     }
 
@@ -59,7 +69,7 @@ public class BaseStation {
             //return the ack message with PER
             return (random.nextDouble() <= PER);
         } else {
-            System.out.println("two at the same time");
+//            System.out.println("two at the same time");
             awaiting.clear();
             //sends the error back to the current sender
             currentSender.notReceived();
