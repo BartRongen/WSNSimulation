@@ -1,6 +1,11 @@
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import javafx.util.Pair;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class WSN {
 
@@ -14,6 +19,8 @@ public class WSN {
 
     private int totalSlots = frames * slots;
     private int secondsPassed = 0;
+
+    public HashMap<String, String> data;
 
     public WSN() {
         bs = new BaseStation();
@@ -110,18 +117,46 @@ public class WSN {
         }
         latencies.sort(Comparator.naturalOrder());
 
-        System.out.println("Best latency: " + latencies.get(0) + " ms");
-        System.out.println("Best latency (1%): " + latencies.get(latencies.size() / 100) + " ms");
-        System.out.println("Average latency: " + totalLatency / received.size() + " ms");
-        System.out.println("Average latency (middle 98%): " + totalLatency / received.size() + " ms");
-        System.out.println("Worst  latency: " + latencies.get(latencies.size() - 1) + " ms");
-        System.out.println("Worst  latency (1%): " + latencies.get(latencies.size() - 1 - latencies.size() / 100) + " ms");
-        System.out.println("Median latency: " + latencies.get(latencies.size() / 2) + " ms");
-        System.out.println("Standard deviation: " + standardDeviation(latencies, totalLatency / received.size()) + " ms");
+        int bestLatency = latencies.get(0);
+        int bestLatency1 = latencies.get(latencies.size() / 100);
+        long avgLatency = totalLatency / received.size();
+        long avgLatency98 = totalLatency / received.size();
+        int worstLatency = latencies.get(latencies.size() - 1);
+        int worstLatency1 = latencies.get(latencies.size() - 1 - latencies.size() / 100);
+        int medianLatency = latencies.get(latencies.size() / 2);
+        double stdDev = standardDeviation(latencies, totalLatency / received.size());
+
+
+        System.out.println("Best latency: " + bestLatency + " ms");
+        System.out.println("Best latency (1%): " + bestLatency1 + " ms");
+        System.out.println("Average latency: " + avgLatency + " ms");
+        System.out.println("Average latency (middle 98%): " + avgLatency98 + " ms");
+        System.out.println("Worst  latency: " + worstLatency + " ms");
+        System.out.println("Worst  latency (1%): " + worstLatency1 + " ms");
+        System.out.println("Median latency: " + medianLatency + " ms");
+        System.out.println("Standard deviation: " + stdDev + " ms");
 
 
         System.out.println();
         System.out.println("Done!");
+
+        //When we want to generate data we store the data obtained from this simulation in a hashmap
+        if (Config.generateData){
+            data = new HashMap<>();
+            data.put("Expected Messages", String.valueOf(expectedMessages));
+            data.put("Lost Messages", String.valueOf(Node.getLostMessages()));
+            data.put("Collisions", String.valueOf(bs.getCollisions()));
+            data.put("Messages (CSMA)", String.valueOf(Node.getCsmaMessagesSent()));
+            data.put("Received Messages", String.valueOf(received.size()));
+            data.put("Best Latency (ms)", String.valueOf(bestLatency));
+            data.put("Best Latency (1%) (ms)", String.valueOf(bestLatency1));
+            data.put("Average Latency", String.valueOf(avgLatency));
+            data.put("Average Latency (middle 98%) (ms)", String.valueOf(avgLatency98));
+            data.put("Worst Latency (ms)", String.valueOf(worstLatency));
+            data.put("Worst Latency (1%) (ms)", String.valueOf(worstLatency1));
+            data.put("Median Latency (ms)", String.valueOf(medianLatency));
+            data.put("Standard Deviation (ms)", String.valueOf(stdDev).replace(".", ","));
+        }
     }
 
 
@@ -135,4 +170,7 @@ public class WSN {
         return Math.sqrt(avg);
     }
 
+    public HashMap<String, String> getData(){
+        return data;
+    }
 }

@@ -13,7 +13,7 @@ public class Node {
     private int seqNumber = 0;
     private int id;
     private boolean clearMessages;
-    private int memory = 60; //we can store 60 messages
+    private int memory = Config.memory; //the amount of messages we can store
     private ArrayList<Node> overhearableNodes;
     private boolean csmaCheckedPreviousSlot;
     private int csmaSkipSlots = 0;
