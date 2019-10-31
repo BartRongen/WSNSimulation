@@ -22,6 +22,7 @@ public class Main {
             for (int i=0; i<wsns.length; i++){
                 System.out.println("Starting simulation " + (i+1) + "/" + Config.numberOfSimulations);
                 wsns[i].startSimulation();
+                Node.reset();
             }
             //Stores the accumulated data from all simulations in one hashmap
             HashMap<String, ArrayList<String>> tempData = new HashMap<>();
@@ -50,7 +51,7 @@ public class Main {
             }
             //Writes to .csv file
             CSVWriter csvWriter = new CSVWriter();
-            String filename = "data_mem" + Config.memory + "_PRR" + Config.PRR + "_nodes" + Config.numNodes + "_hours" + Config.hours + ".csv";
+            String filename = "data_mem" + Config.memory + "_PRR" + Config.PRR + "_nodes" + Config.numNodes + "_hours" + Config.hours  + "_sims" + Config.numberOfSimulations + ".csv";
             try {
                 csvWriter.writeToCSV(data, filename);
             } catch (IOException e) {

@@ -34,6 +34,12 @@ public class Node {
         return lostMessages;
     }
 
+
+    public static void reset(){
+        lostMessages = 0;
+        csmaMessagesSent = 0;
+    }
+
     public boolean isSending() {
         return sending;
     }
