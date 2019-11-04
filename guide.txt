@@ -1,0 +1,5 @@
+How to use the simulation
+
+-- Install a java environment (preferably intellij idea)
+-- Configure the values in Config.java
+-- Run Main.java using the IDE
