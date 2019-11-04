@@ -8,6 +8,7 @@ public class Node {
     private BaseStation bs;
     private ArrayList<Integer> generating; //stores the messages, with pair(slot, message), slot determines when the message will be generated.
     private ArrayList<Message> messages;
+    private ArrayList<PriceUpdate> received;
     private Random random;
     private int totalSlots;
     private int seqNumber = 0;
@@ -47,6 +48,7 @@ public class Node {
     public Node(int totalSlots, int id, ArrayList<Node> overhearableNodes, int BE) {
         messages = new ArrayList<>();
         generating = new ArrayList<>();
+        received = new ArrayList<>();
         random = new Random();
         this.totalSlots = totalSlots;
         this.id = id;
@@ -76,7 +78,7 @@ public class Node {
     //processes the node, called each slot
     public void process(int frame, int slot, long time) {
         //calculate current slot;
-        int cS = frame * 16 + slot;
+        int cS = frame * WSN.slots + slot;
         sending = false;
 
         if (csmaDidSend) {
@@ -151,6 +153,9 @@ public class Node {
     }
 
     public void ack() {
+        if ((random.nextDouble() > Config.PRR)) {
+            return;
+        }
         clearMessages = true;
         if (csmaDidSend) {
             csmaMessagesSent += Math.min(messages.size(), 20);
@@ -162,4 +167,20 @@ public class Node {
     public int getSeqNumber() {
         return seqNumber;
     }
+
+    public ArrayList<PriceUpdate> getReceived() {
+        return received;
+    }
+
+    public void send(PriceUpdate update, long time) {
+        if ((random.nextDouble() > Config.PRR)) {
+            return;
+        }
+        if (update.recievedAt == -1) {
+            update.recievedAt = time + WSN.slotLength;
+            received.add(update);
+        }
+        bs.ack();
+    }
+
 }

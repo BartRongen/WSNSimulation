@@ -12,4 +12,6 @@ class Config {
     //Whether we save data to .csv and for how many simulations
     static final boolean generateData = true;
     static final int numberOfSimulations = 20;
+
+    static final int maxUpdatesPerMinute = 20;
 }

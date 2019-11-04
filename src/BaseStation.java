@@ -1,6 +1,4 @@
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class BaseStation {
 
@@ -8,16 +6,34 @@ public class BaseStation {
     private Random random;
     private ArrayList<Message> received; //the successfully received messages
     private ArrayList<Message> awaiting; //the messages discovered this slot, but they can be corrupted if two nodes send during the same slot
+    private Queue<PriceUpdate> updates; //the messages discovered this slot, but they can be corrupted if two nodes send during the same slot
     boolean alreadyReceived = false; //boolean to track whether or not the base station already received a message this slot
     boolean didCollide;
     private Node currentSender;
 
+    private int highestUpdatesCount;
+
+    public int getHighestUpdatesCount() {
+        return highestUpdatesCount;
+    }
+
     private long collisions;
+
+    private int seqNumber = 0;
 
     public BaseStation() {
         received = new ArrayList<>();
         awaiting = new ArrayList<>();
+        updates = new LinkedList<>();
         random = new Random();
+    }
+
+    public void setupGeneration(long time) {
+        int numNewUpdates = random.nextInt(Config.maxUpdatesPerMinute + 1);
+        for (int i = 0; i < numNewUpdates; i++) {
+            updates.add(new PriceUpdate(random.nextInt(Config.numNodes), ++seqNumber, time));
+        }
+        highestUpdatesCount = Math.max(highestUpdatesCount, updates.size());
     }
 
     public void assignNodes(Node[] nodes) {
@@ -39,6 +55,17 @@ public class BaseStation {
         }
     }
 
+    public void update(int frame, int slot, long time) {
+        if (slot < 9 || updates.size() == 0) return;
+        int cS = frame * 7 + slot - 9;
+        if (cS < Config.numNodes) return;
+
+        PriceUpdate update = updates.peek();
+        Node node = nodes[update.destination];
+        node.send(update, time);
+
+    }
+
     public void process(long time) {
         alreadyReceived = false;
         if (didCollide) {
@@ -53,9 +80,7 @@ public class BaseStation {
                     received.add(message);
                 }
             }
-            if ((random.nextDouble() <= Config.PRR)) {
-                currentSender.ack();
-            }
+            currentSender.ack();
             awaiting.clear();
         }
     }
@@ -89,5 +114,12 @@ public class BaseStation {
 
     public long getCollisions() {
         return collisions;
+    }
+
+    public void ack() {
+        if ((random.nextDouble() > Config.PRR)) {
+            return;
+        }
+        updates.poll();
     }
 }

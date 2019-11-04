@@ -3,21 +3,22 @@ import javafx.util.Pair;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class WSN {
 
-    static long slotLength = 1000 / (12 * 16);
+    static final long slotLength = 1000 / (12 * 16);
 
     BaseStation bs;
     Node[] nodes;
 
-    private int frames = 12;
-    private int slots = 16;
+    static final int frames = 12;
+    static final int slots = 16;
 
-    private int totalSlots = frames * slots;
+    static final int totalSlots = frames * slots;
     private int secondsPassed = 0;
 
     public HashMap<String, String> data;
@@ -49,6 +50,7 @@ public class WSN {
             if (time > (secondsPassed + 1) * 1000) {
                 secondsPassed++;
                 if (secondsPassed % (60 * 5) == 0) {
+                    bs.setupGeneration(time);
                     System.out.println("Simulated " + (secondsPassed / 60) + "/" + (Config.simulationTime / 60) + " minutes");
                 }
                 for (Node node : nodes) {
@@ -63,6 +65,7 @@ public class WSN {
             for (Node node : nodes) {
                 node.process(frame, slot, time);
             }
+            bs.update(frame, slot, time);
             //update the createdAt
             time += slotLength;
 
@@ -91,9 +94,11 @@ public class WSN {
         System.out.println("Gathering results...");
         System.out.println();
         int expectedMessages = 0;
+        ArrayList<PriceUpdate> receivedUpdates = new ArrayList<>();
 
         for (Node node : nodes) {
             expectedMessages += node.getSeqNumber();
+            receivedUpdates.addAll(node.getReceived());
         }
         System.out.println("Expected messages: " + expectedMessages);
         System.out.println("Lost messages: " + Node.getLostMessages());
@@ -102,13 +107,17 @@ public class WSN {
 
         long totalLatency = 0;
         long totalLatencyMiddle = 0;
+        int numUnder5 = 0;
 
         ArrayList<Message> received = bs.getReceived();
         System.out.println("Received messages: " + received.size());
         ArrayList<Integer> latencies = new ArrayList<>(received.size());
         for (int i = 0; i < received.size(); i++) {
             Message message = received.get(i);
-            int latency = (int)(message.recievedAt - message.createdAt);
+            int latency = (int) (message.recievedAt - message.createdAt);
+            if (latency <= 5000) {
+                numUnder5++;
+            }
             latencies.add(latency);
             totalLatency += latency;
             if (i > received.size() / 100 && i < received.size() - received.size() / 100) {
@@ -120,11 +129,32 @@ public class WSN {
         int bestLatency = latencies.get(0);
         int bestLatency1 = latencies.get(latencies.size() / 100);
         long avgLatency = totalLatency / received.size();
-        long avgLatency98 = totalLatency / received.size();
+        long avgLatency98 = totalLatencyMiddle / received.size();
         int worstLatency = latencies.get(latencies.size() - 1);
         int worstLatency1 = latencies.get(latencies.size() - 1 - latencies.size() / 100);
         int medianLatency = latencies.get(latencies.size() / 2);
         double stdDev = standardDeviation(latencies, totalLatency / received.size());
+        double percentUnder5 = (double) numUnder5 / (double) received.size() * 100.0;
+        int highestUpdatesCount = bs.getHighestUpdatesCount();
+
+        latencies.clear();
+        totalLatency = 0;
+        numUnder5 = 0;
+        for (PriceUpdate update : receivedUpdates) {
+            int latency = (int) (update.recievedAt - update.createdAt);
+            totalLatency += latency;
+            latencies.add(latency);
+            if (latency < 5000) {
+                numUnder5++;
+            }
+        }
+        latencies.sort(Comparator.naturalOrder());
+
+        int bestUpdatesLatency = latencies.get(0);
+        long avgUpdatesLatency = totalLatency / receivedUpdates.size();
+        int worstUpdatesLatency = latencies.get(latencies.size() - 1);
+        int medianUpdatesLatency = latencies.get(latencies.size() / 2);
+        double percentUpdatesUnder5 = (double) numUnder5 / (double) receivedUpdates.size() * 100.0;
 
 
         System.out.println("Best latency: " + bestLatency + " ms");
@@ -135,13 +165,24 @@ public class WSN {
         System.out.println("Worst  latency (1%): " + worstLatency1 + " ms");
         System.out.println("Median latency: " + medianLatency + " ms");
         System.out.println("Standard deviation: " + stdDev + " ms");
+        System.out.println("Under 5s: " + percentUnder5 + " %");
+
+        System.out.println();
+
+        System.out.println("Updates received: " + receivedUpdates.size());
+        System.out.println("Highest updates count: " + highestUpdatesCount);
+        System.out.println("Updates best latency: " + bestUpdatesLatency + " ms");
+        System.out.println("Updates average latency: " + avgUpdatesLatency + " ms");
+        System.out.println("Updates worst  latency: " + worstUpdatesLatency + " ms");
+        System.out.println("Updates median latency: " + medianUpdatesLatency + " ms");
+        System.out.println("Updates under 5s: " + percentUpdatesUnder5 + " %");
 
 
         System.out.println();
         System.out.println("Done!");
 
         //When we want to generate data we store the data obtained from this simulation in a hashmap
-        if (Config.generateData){
+        if (Config.generateData) {
             data = new HashMap<>();
             data.put("Expected Messages", String.valueOf(expectedMessages));
             data.put("Lost Messages", String.valueOf(Node.getLostMessages()));
@@ -156,6 +197,15 @@ public class WSN {
             data.put("Worst Latency (1%) (ms)", String.valueOf(worstLatency1));
             data.put("Median Latency (ms)", String.valueOf(medianLatency));
             data.put("Standard Deviation (ms)", String.valueOf(stdDev).replace(".", ","));
+            data.put("Under 5s (%)", String.valueOf(percentUnder5).replace(".", ","));
+
+            data.put("Updates received", String.valueOf(receivedUpdates.size()).replace(".", ","));
+            data.put("Highest updates count", String.valueOf(highestUpdatesCount).replace(".", ","));
+            data.put("Updates best latency (ms)", String.valueOf(bestUpdatesLatency).replace(".", ","));
+            data.put("Updates average latency (ms)", String.valueOf(avgUpdatesLatency).replace(".", ","));
+            data.put("Updates worst  latency (ms)", String.valueOf(worstUpdatesLatency).replace(".", ","));
+            data.put("Updates median latency (ms) ", String.valueOf(medianUpdatesLatency).replace(".", ","));
+            data.put("Updates under 5s (%)", String.valueOf(percentUpdatesUnder5).replace(".", ","));
         }
     }
 
@@ -166,11 +216,11 @@ public class WSN {
             long val = average - latency;
             runningSum += val * val;
         }
-        int avg = (int)(runningSum / latencies.size());
+        int avg = (int) (runningSum / latencies.size());
         return Math.sqrt(avg);
     }
 
-    public HashMap<String, String> getData(){
+    public HashMap<String, String> getData() {
         return data;
     }
 }
